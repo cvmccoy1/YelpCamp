@@ -13,13 +13,18 @@ const methodOverride = require("method-override");
 const passport = require("passport");
 const LocalStrategy = require("passport-local");
 const User = require("./models/user");
+const mongoSanitize = require('express-mongo-sanitize');
+const helmet = require("helmet");
+const MongoDBStore = require('connect-mongo');
 
 const userRoutes = require("./routes/users");
 const campgroundRoutes = require("./routes/campgrounds");
 const reviewRoutes = require("./routes/reviews");
 
+const dbUrl = process.env.DB_URL || "mongodb://localhost:27017/yelp-camp";
+
 // Connect and setup the mongo database
-mongoose.connect("mongodb://localhost:27017/yelp-camp");
+mongoose.connect(dbUrl);
 mongoose
     .connection
     .on("error", console.error.bind(console, "Connection error:"))
@@ -35,20 +40,85 @@ app.use(express.json()); // for parsing application/json
 app.use(express.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 app.use(methodOverride("_method"));
 app.use(express.static(path.join(__dirname, "public")));
+app.use(mongoSanitize());  // Prevents SQL-injection
+
+const secret = process.env.SECRET || "thissouldbeabettersecret!";
+const oneDayInSeconds = 60 * 60 * 24;
+const store = MongoDBStore.create({
+    mongoUrl: dbUrl,
+    touchAfter: oneDayInSeconds,
+    crypto: {
+        secret: secret,
+    }
+});
+store.on("error", function (e) {
+    console.log("Session Store Error:", e);
+});
 
 const oneWeekInMilliseconds = 1000 * 60 * 60 * 24 * 7;
 const sessionConfig = {
-    secret: "thissouldbeabettersecret!",
+    store: store,
+    name: "session",
+    secret: secret,
     resave: false,
     saveUninitialized: true,
     cookie: {
         httpOnly: true,
+        // secure: true,
         expires: Date.now() + oneWeekInMilliseconds,
         maxAge: oneWeekInMilliseconds
     }
 }
 app.use(session(sessionConfig));
 app.use(flash());
+app.use(helmet({ crossOriginEmbedderPolicy: false }));
+
+const scriptSrcUrls = [
+    "https://stackpath.bootstrapcdn.com/",
+    "https://api.tiles.mapbox.com/",
+    "https://api.mapbox.com/",
+    "https://kit.fontawesome.com/",
+    "https://cdn.jscloudflare.com/",
+    "https://cdn.jsdelivr.net",
+];
+const styleSrcUrls = [
+    "https://kit-free.fontawesome.com/",
+    "https://stackpath.bootstrapcdn.com/",
+    "https://api.mapbox.com/",
+    "https://api.tiles.mapbox.com/",
+    "https://fonts.googleapis.com/",
+    "https://use.fontawesome.com/",
+    "https://cdn.jsdelivr.net",
+];
+const connectSrcUrls = [
+    "https://api.mapbox.com/",
+    "https://a.tiles.mapbox.com/",
+    "https://b.tiles.mapbox.com/",
+    "https://events.mapbox.com/",
+];
+const fontSrcUrls = [];
+app.use(
+    helmet.contentSecurityPolicy({
+        directives: {
+            defaultSrc: [],
+            connectSrc: ["'self'", ...connectSrcUrls],
+            scriptSrc: ["'unsafe-inline'", "'self'", ...scriptSrcUrls],
+            styleSrc: ["'self'", "'unsafe-inline'", ...styleSrcUrls],
+            workerSrc: ["'self'", "blob:"],
+            objectSrc: [],
+            imgSrc: [
+                "'self'",
+                "blob:",
+                "data:",
+                "https://res.cloudinary.com/db0nd23fq/", // My Cloudinary account
+                "https://res.cloudinary.com/douqbebwk/", // Colt's Cloudinary account 
+                "https://images.unsplash.com/",
+            ],
+            fontSrc: ["'self'", ...fontSrcUrls],
+        },
+    })
+);
+
 
 app.use(passport.initialize());
 app.use(passport.session());
