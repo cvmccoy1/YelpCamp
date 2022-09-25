@@ -1,0 +1,74 @@
+From separate PowerShell Prompts:
+---------------------------------
+mongod	    // starts up the MongoDB deamon - located at C:\Mongo\bin\mongod.exe
+mongo       // starts up the MongoDB shell
+
+TO POPULATE A MONGO DATABASE
+
+In a {model_js_file}:
+---------------------
+const mongoose = require('mongoose');
+
+const productSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true
+    },
+    price: {
+        type: Number,
+        required: true,
+        min: 0
+    },
+    category: {
+        type: String,
+        lowercase: true,
+        enum: ['fruit', 'vegetable', 'dairy']
+    }
+})
+
+const {Model_name} = mongoose.model('{Model_name}', productSchema);  // First Letter of db_name is upper-case by convention
+
+module.exports = {Model_name};
+
+In a {js_file}:
+-------------
+const mongoose = require('mongoose');
+const {Model_name} = require('./models/{model_js_file}');
+
+mongoose.connect('mongodb://localhost:27017/{db_name}')
+    .then(() => {
+        console.log("MONGO CONNECTION OPEN!!!")
+    })
+    .catch(err => {
+        console.log("OH NO MONGO CONNECTION ERROR!!!!")
+        console.log(err)
+    })
+	
+{Model_name}.insertMany({model_array)
+    .then(res => {
+        console.log(res)
+    })
+    .catch(e => {
+        console.log(e)
+    })
+
+From a Git Bash Shell Prompt:
+-----------------------------
+node {js_file}
+
+
+From a PowerShell Prompt:
+-------------------------
+mongo
+> show dbs
+> use {db_name}
+> show collections
+> db.{model_names}.find()      // First Letter of db_name is lower-case by convention and an 's' is appended
+
+
+TO DELETE A MONGO COLLECTION
+
+From a PowerShell Prompt:
+-------------------------
+mongo
+> db.{model_names}.drop()

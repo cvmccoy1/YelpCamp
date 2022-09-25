@@ -1,0 +1,22 @@
+
+To create the package.json file
+-------------------------------
+npm init -y
+
+
+To install the dependency modules in the package.json file
+----------------------------------------------------------
+npm install
+
+
+To insall new dependency modules
+--------------------------------
+npm i[nstall] module1 [module2] [module3] [...]
+
+
+To start a node session:
+node {js_file}     ex:  node app.js
+
+
+To start with node daemon (for auto restart of node on code changes):
+nodemon {js_file}   ex: nodemon app.js

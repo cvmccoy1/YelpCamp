@@ -1,0 +1,17 @@
+> npm i express
+
+
+const express = require("express")'
+
+const app = express();
+app.use({middleware_function});   // Is called on every HTTP request
+
+// Set up the listener
+const port = 3000;
+app.listen(port, () => {
+    console.log("Serving on Port", port);
+});
+
+
+To start up client on browser:
+localhost:3000
